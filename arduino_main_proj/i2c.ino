@@ -1,14 +1,5 @@
 void pack_payload() {
 
-
-  uint8_t current[6];
-  for (int i = 0; i < 6; i++) {
-    current[i] = (uint8_t)(current_acs[i]);
-  }
-  byte energy_high, energy_low;
-  energy_high = energy_pzem >> 8 >> 8;
-  energy_low = energy_pzem & 0xFFFF;
-
   payload[0] = device[0];  //id
   payload[1] = voltage_pzem >> 8;
   payload[2] = voltage_pzem & 0xFF;
@@ -16,50 +7,43 @@ void pack_payload() {
   payload[4] = current_pzem & 0xFF;
   payload[5] = power_pzem >> 8;
   payload[6] = power_pzem & 0xFF;
-  payload[7] = energy_high >> 8;
-  payload[8] = energy_high & 0xFF;
-  payload[9] = energy_low >> 8;
-  payload[10] = energy_low & 0xFF;
+  payload[7] = energy_pzem >> 24;
+  payload[8] = energy_pzem >> 16;
+  payload[9] = energy_pzem >> 8;
+  payload[10] = energy_pzem & 0xFF;
   payload[11] = device[1];
-  payload[12] = current[0];
-  payload[13] = 0x01;
+  payload[12] = (uint8_t)(current_acs[0]);
+  payload[13] = state[0];
   payload[14] = device[2];
-  payload[15] = current[1];
-  payload[16] = 0x01;
+  payload[15] = (uint8_t)(current_acs[1]);
+  payload[16] = state[1];
   payload[17] = device[3];
-  payload[18] = current[2];
-  payload[19] = 0x01;
+  payload[18] = (uint8_t)(current_acs[2]);
+  payload[19] = state[2];
   payload[20] = device[4];
-  payload[21] = current[3];
-  payload[22] = 0x01;
+  payload[21] = (uint8_t)(current_acs[3]);
+  payload[22] = state[3];
   payload[23] = device[5];
-  payload[24] = current[4];
-  payload[25] = 0x01;
+  payload[24] = (uint8_t)(current_acs[4]);
+  payload[25] = state[4];
   payload[26] = device[6];
-  payload[27] = current[5];
-  payload[28] = 0x01;
-
-
-
-
-  for (int i = 0; i < sizeof(payload); i++) {
-    //     if (payload[i] == 0) {
-    //   Serial.print("00");
-    // } else {
-    Serial.print(payload[i], HEX);
-  }
-  // }
-  Serial.println(" ");
+  payload[27] = (uint8_t)(current_acs[5]);
+  payload[28] = state[5];
 }
 
 void requestEvent() {
-  pack_payload();
+  // pzemRead();
+  // readSensorACS();
+  // pack_payload();
   Wire.write(payload, 29);  // respond with message of 29 bytes
-  // as expected by master
+                            // as expected by master
+  for (int i = 0; i < sizeof(payload); i++) {
+    Serial.print(payload[i], HEX);
+  }
+  Serial.println(" ");
 }
 
-// function that executes whenever data is received from master
-// this function is registered as an event, see setup()
+
 void receiveEvent(int howMany) {
 
   uint8_t buff[howMany];
@@ -72,11 +56,14 @@ void receiveEvent(int howMany) {
     Serial.print(buff[i], HEX);
   }
   Serial.println();
+
   for (int i = 0; i < sizeof(buff); i++) {
-    int ch  = (int)buff[i] >> 4;
-    state[i] = (int)buff[i] & 0xF ;
-    relay(ch, state[i]);
-    Serial.print("state : ");
-    Serial.println(state[i]);
+
+    int chan = buff[i] >> 4;
+    int state_buf = buff[i] & 0xF;
+    state[i] = state_buf;
+    relay(chan, state[i]);
+    Serial.print(String("ch :") + chan);
+    Serial.println(String(" state :") + state[i]);
   }
 }
