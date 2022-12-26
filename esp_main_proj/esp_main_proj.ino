@@ -10,15 +10,19 @@
 #include <hal/hal.h>
 #include <SPI.h>
 #include "Wire.h"
+
+#define WATCHDOG_TIMEOUT_S 30
 #define I2C_UNO_ADDR 8
 #define I2C_SDA 33
 #define I2C_SCL 32
 #define led 2
 
-
+const unsigned TX_INTERVAL = 60;
+hw_timer_t* watchDogTimer = NULL;
 static osjob_t sendjob;
-const unsigned TX_INTERVAL = 30;
+long unsigned last_time;
 
+uint8_t payload[29];
 static const PROGMEM u1_t NWKSKEY[16] = { 0x96, 0x69, 0x80, 0x29, 0x57, 0xE7, 0xA8, 0x85, 0x29, 0x1C, 0x0F, 0xE0, 0xDD, 0x37, 0x8E, 0x8A };
 static const u1_t PROGMEM APPSKEY[16] = { 0xAF, 0xCD, 0x5E, 0x88, 0x9A, 0x5E, 0xFE, 0x0F, 0xDD, 0xF7, 0xF6, 0x9D, 0x22, 0x62, 0xEB, 0x0D };
 static const u4_t DEVADDR = 0x260D8525;
@@ -32,6 +36,14 @@ const lmic_pinmap lmic_pins = {
 void os_getArtEui(u1_t* buf) {}
 void os_getDevEui(u1_t* buf) {}
 void os_getDevKey(u1_t* buf) {}
+
+void IRAM_ATTR watchDogInterrupt() {
+  Serial.println("reboot");
+  ESP.restart();
+}
+void watchDogRefresh() {
+  timerWrite(watchDogTimer, 0);  //reset timer (feed watchdog)
+}
 
 void onEvent(ev_t ev) {
   Serial.print(os_getTime());
@@ -118,23 +130,42 @@ void do_send(osjob_t* j) {
     Serial.println(F("OP_TXRXPEND, not sending"));
   } else {
     // Prepare upstream data transmission at the next possible time.
-    payload_lora();
+    LMIC_setTxData2(1, payload, sizeof(payload), 0);
+    Serial.println(F("Packet queued"));
+    Serial.println("HEX PAYLOAD ");
+    for (int i = 0; i < sizeof(payload); i++) {
+      // if (payload[i] == 0) {
+      //   Serial.print("00");
+      // } else {
+      Serial.print(payload[i], HEX);
+      // }
+    }
     // Next TX is scheduled after TX_COMPLETE event.
   }
 }
 
 
 void setup() {
-  
+
   Serial.begin(115200);
-  Serial.setDebugOutput(true);
+
+
+
   Wire.begin(I2C_SDA, I2C_SCL);
+
   pinMode(led, OUTPUT);
   delay(100);  // per sample code on RF_95 test
   Serial.println(F("Starting"));
   os_init();
   // Reset the MAC state. Session and pending data transfers will be discarded.
   LMIC_reset();
+
+  watchDogTimer = timerBegin(2, 80, true);
+  timerAttachInterrupt(watchDogTimer, &watchDogInterrupt, true);
+  timerAlarmWrite(watchDogTimer, WATCHDOG_TIMEOUT_S * 1000000, false);
+  timerAlarmEnable(watchDogTimer);
+  delay(10000);
+  get_payload_uno();
 
 #ifdef PROGMEM
   uint8_t appskey[sizeof(APPSKEY)];
@@ -164,6 +195,10 @@ void setup() {
 
 
 void loop() {
-  
+  if (millis() - last_time >= 30000) {
+    last_time = millis();
+    get_payload_uno();
+  }
+  watchDogRefresh();
   os_runloop_once();
 }

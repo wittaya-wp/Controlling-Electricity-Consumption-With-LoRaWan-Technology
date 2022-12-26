@@ -6,10 +6,6 @@ void mux(int index) {
   digitalWrite(s1_pin, mux[device_ch[index]][1]);
   digitalWrite(s2_pin, mux[device_ch[index]][2]);
   digitalWrite(s3_pin, mux[device_ch[index]][3]);
-  // digitalWrite(s0_pin, mux[index][0]);
-  // digitalWrite(s1_pin, mux[index][1]);
-  // digitalWrite(s2_pin, mux[index][2]);
-  // digitalWrite(s3_pin, mux[index][3]);
   Serial.print("channel ");
   Serial.print(device_ch[index]);
   Serial.print("   ");
@@ -33,27 +29,21 @@ void setMidPoint() {
 
 void readSensorACS() {
   float volt_analog[6];
+  float AvgACS = 0;
   for (int i = 0; i < 6; i++) {
-    float AvgACS = 0.0, Samples = 0.0, ACSValue = 0.0;
     mux(i);
-    for (int x = 0; x < 100; x++) {  //This would take 500 Samples
-      ACSValue = analogRead(analog_pin);
-      Samples = Samples + ACSValue;
-      
-    }
-    AvgACS = Samples / 100;
+    AvgACS = analogRead(analog_pin);
     volt_analog[i] = AvgACS * (5.0 / 1023.0);
     current_acs[i] = (volt_analog[i] - BaseVolt[i]) / 0.066;  //0.066V = 66mvol.= 1 Amp This is sensitivity of your ACS module
-   
-    if(current_acs[i] >= 25) {
-    current_acs[i] = 25;
+    if (current_acs[i] < 0) {
+      current_acs[i] = current_acs[i] * -1;
+    } else if (current_acs[i] > 25) {
+      current_acs[i] = 25.00;
     }
-
     Serial.print(" votage A0 :  ");
     Serial.print(volt_analog[i]);
     Serial.print("     ACS(A)   :  ");
     Serial.println(current_acs[i]);
-    
   }
   Serial.println();
 }
@@ -65,8 +55,11 @@ void pzemRead() {
   float current = pzem.current();
   float power = pzem.power();
   float energy = pzem.energy();
-  float frequency = pzem.frequency();
-  float pf = pzem.pf();
+
+  voltage_pzem = (uint16_t)(voltage * 100);
+  current_pzem = (uint16_t)(current * 100);
+  power_pzem = (uint16_t)(power * 100);
+  energy_pzem = (uint16_t)(energy * 100);
 
   // Check if the data is valid
   if (isnan(voltage)) {
@@ -77,15 +70,7 @@ void pzemRead() {
     Serial.println("Error reading power");
   } else if (isnan(energy)) {
     Serial.println("Error reading energy");
-  } else if (isnan(frequency)) {
-    Serial.println("Error reading frequency");
-  } else if (isnan(pf)) {
-    Serial.println("Error reading power factor");
   } else {
-    voltage_pzem = (uint16_t)(voltage * 100);
-    current_pzem = (uint16_t)(current * 100);
-    power_pzem = (uint16_t)(power * 100);
-    energy_pzem = (uint16_t)(energy * 100);
     //Print the values to the Serial console
     Serial.print("Voltage: ");
     Serial.print(voltage);
@@ -97,16 +82,9 @@ void pzemRead() {
     Serial.print(power);
     Serial.println("W");
     Serial.print("Energy: ");
-    Serial.print(energy, 2);
+    Serial.print(energy,2);
     Serial.println("kWh");
-    // Serial.print("Frequency: ");
-    // Serial.print(frequency, 1);
-    // Serial.println("Hz");
-    // Serial.print("PF: ");
-    // Serial.println(pf);
+
   }
   Serial.println();
 }
-
-
-
