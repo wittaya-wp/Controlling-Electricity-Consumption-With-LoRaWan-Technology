@@ -1,6 +1,7 @@
-void pack_payload() {
+void pack_payload()
+{
 
-  payload[0] = device[0];  //id
+  payload[0] = device[0]; // id
   payload[1] = voltage_pzem >> 8;
   payload[2] = voltage_pzem & 0xFF;
   payload[3] = current_pzem >> 8;
@@ -31,39 +32,50 @@ void pack_payload() {
   payload[28] = state[5];
 }
 
-void requestEvent() {
+void requestEvent()
+{
   // pzemRead();
   // readSensorACS();
   // pack_payload();
-  Wire.write(payload, 29);  // respond with message of 29 bytes
-                            // as expected by master
-  for (int i = 0; i < sizeof(payload); i++) {
+  Wire.write(payload, 29); // respond with message of 29 bytes
+                           // as expected by master
+  for (int i = 0; i < sizeof(payload); i++)
+  {
     Serial.print(payload[i], HEX);
   }
   Serial.println(" ");
 }
 
-
-void receiveEvent(int howMany) {
+void receiveEvent(int howMany)
+{
 
   uint8_t buff[howMany];
   Serial.print("received ");
   Serial.print(howMany);
   Serial.print(" byte :  ");
 
-  for (int i = 0; i < howMany; i++) {
+  for (int i = 0; i < howMany; i++)
+  {
     buff[i] = Wire.read();
     Serial.print(buff[i], HEX);
   }
   Serial.println();
 
-  for (int i = 0; i < sizeof(buff); i++) {
-
-    int chan = buff[i] >> 4;
-    int state_buf = buff[i] & 0xF;
-    state[i] = state_buf;
-    relay(chan, state[i]);
-    Serial.print(String("ch :") + chan);
-    Serial.println(String(" state :") + state[i]);
+  for (int i = 0; i < sizeof(buff); i++)
+  {
+    if (i < 6)
+    {
+      int chan = buff[i] >> 4;
+      int state_buf = buff[i] & 0xF;
+      state[i] = state_buf;
+      relay(chan, state[i]);
+      Serial.print(String("ch :") + chan);
+      Serial.println(String(" state :") + state[i]);
+    }
+    elseif(i > 5 && buff[i] == 0xFF)
+    {
+      pzem.resetEnegy();
+      Serial.print("reset energy success");
+    }
   }
 }
