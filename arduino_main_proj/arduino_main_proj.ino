@@ -14,7 +14,7 @@
 #define interval 5000
 
 byte payload[29];
-const uint8_t device[7] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+const uint8_t device[7] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
 int state[6];
 unsigned long time;
 float BaseVolt[6];
@@ -24,37 +24,39 @@ uint16_t current_pzem;
 uint16_t power_pzem;
 uint32_t energy_pzem;
 
-
 SoftwareSerial mySerial(rxPin, txPin);
 PZEM004Tv30 pzem(mySerial);
 
-
-
-void setup() {
+void setup()
+{
   Serial.begin(9600);
 
-  Wire.begin(8);                 // join I2C bus with address #8
-  Wire.onReceive(receiveEvent);  // register event
-  Wire.onRequest(requestEvent);  // register event
+  Wire.begin(8);                // join I2C bus with address #8
+  Wire.onReceive(receiveEvent); // register event
+  Wire.onRequest(requestEvent); // register event
   pinMode(analog_pin, INPUT);
   pinMode(s0_pin, OUTPUT);
   pinMode(s1_pin, OUTPUT);
   pinMode(s2_pin, OUTPUT);
   pinMode(s3_pin, OUTPUT);
-  for (int i = 2; i < 8; i++) {
+  for (int i = 2; i < 8; i++)
+  {
     pinMode(i, OUTPUT);
     digitalWrite(i, 1);
   }
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < 6; i++)
+  {
     state[i] = 1;
   }
 
-
-  //set address for pzem
-  if (!pzem.setAddress(addr)) {
+  // set address for pzem
+  if (!pzem.setAddress(addr))
+  {
     // Setting custom address failed. Probably no PZEM connected
     Serial.println("Error setting address.");
-  } else {
+  }
+  else
+  {
     // Print out the new custom address
     Serial.print("Current address:    0x");
     Serial.println(pzem.readAddress(), HEX);
@@ -66,8 +68,9 @@ void setup() {
   setMidPoint();
 }
 
-void relay(int channel, int state) {
-  const int pin_ch[] = { 2, 3, 4, 5, 6, 7 };
+void relay(int channel, int state)
+{
+  const int pin_ch[] = {2, 3, 4, 5, 6, 7};
   int index = channel - 1;
   //--------- logic LOW mean relay pin com->on = circuit cut off----------//
   digitalWrite(pin_ch[index], state);
@@ -75,8 +78,10 @@ void relay(int channel, int state) {
   Serial.println(String("  state : ") + state);
 }
 
-void loop() {
-  if (millis() - time >= interval) {
+void loop()
+{
+  if (millis() - time >= interval)
+  {
     time = millis();
     pzemRead();
     readSensorACS();
