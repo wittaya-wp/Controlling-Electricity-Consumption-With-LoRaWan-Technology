@@ -34,9 +34,7 @@ void pack_payload()
 
 void requestEvent()
 {
-  // pzemRead();
-  // readSensorACS();
-  // pack_payload();
+
   Wire.write(payload, 29); // respond with message of 29 bytes
                            // as expected by master
   for (int i = 0; i < sizeof(payload); i++)
@@ -72,9 +70,9 @@ void receiveEvent(int howMany)
       Serial.print(String("ch :") + chan);
       Serial.println(String(" state :") + state[i]);
     }
-    elseif(i > 5 && buff[i] == 0xFF)
+    if(i > 5 && buff[i] == 0xFF)
     {
-      pzem.resetEnegy();
+      pzem.resetEnergy();
       Serial.print("reset energy success");
     }
   }
